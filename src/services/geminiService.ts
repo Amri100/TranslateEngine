@@ -10,8 +10,8 @@ export interface TranslationResult {
 export async function translateGameText(
   texts: string[],
   targetLang: string,
-  engine: "kirikiri" | "rpgmaker",
-  provider: "gemini" | "google" | "bing" = "gemini",
+  engine: string,
+  provider: "gemini" | "google" | "bing" | "mymemory" | "lingva" = "gemini",
   context?: string
 ): Promise<TranslationResult[]> {
   try {

@@ -1,19 +1,13 @@
-import express from "express";
-import { createServer as createViteServer } from "vite";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { translate as googleTranslate } from "@vitalets/google-translate-api";
 import { translate as bingTranslate } from "bing-translate-api";
 import { GoogleGenAI, Type } from "@google/genai";
-import dotenv from "dotenv";
 
-dotenv.config();
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-const app = express();
-const PORT = 3000;
-
-app.use(express.json({ limit: '50mb' }));
-
-// Translation API
-app.post("/api/translate", async (req, res) => {
   const { texts, targetLang, engine, provider, context } = req.body;
 
   if (!texts || !Array.isArray(texts)) {
@@ -27,7 +21,6 @@ app.post("/api/translate", async (req, res) => {
         try {
           const res = await googleTranslate(text, { to: targetLang });
           results.push(res.text);
-          // Small delay to avoid rate limits
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (e) {
           results.push(text);
@@ -84,7 +77,7 @@ app.post("/api/translate", async (req, res) => {
 
     // Default to Gemini
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+    if (!apiKey) {
       return res.status(500).json({ error: "Gemini API key not configured on server." });
     }
 
@@ -125,22 +118,4 @@ app.post("/api/translate", async (req, res) => {
     console.error("Translation error:", error);
     res.status(500).json({ error: error.message });
   }
-});
-
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    app.use(express.static("dist"));
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
 }
-
-startServer();
